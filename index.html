@@ -22,9 +22,9 @@ h1{font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:14px;letter-spacin
 .cal-scroll::-webkit-scrollbar-track{background:#f0f0f0;border-radius:2px}
 .cal-scroll::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:2px}
 
-.cal-wrap{min-width:350px}
+.cal-wrap{min-width:490px;width:490px}
 .month-label{font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e5e5ea;border-radius:12px;overflow:hidden;border:1px solid #e5e5ea}
+.cal-grid{display:grid;grid-template-columns:repeat(7,70px);gap:1px;background:#e5e5ea;border-radius:12px;overflow:hidden;border:1px solid #e5e5ea;width:100%}
 
 /* 曜日ヘッダー */
 .dh{background:#f2f2f7;padding:6px 2px;text-align:center;font-size:11px;font-weight:600;color:#636366}
@@ -63,47 +63,35 @@ h1{font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:14px;letter-spacin
 .overlay{
   display:none;
   position:fixed;inset:0;
-  background:rgba(0,0,0,0.55);
+  background:rgba(0,0,0,0.6);
   z-index:1000;
-  align-items:flex-end; /* スマホ: 下から */
+  align-items:center;
   justify-content:center;
-  padding:0;
+  padding:16px;
   -webkit-tap-highlight-color:transparent;
 }
 .overlay.open{display:flex}
 
-/* タブレット以上は中央 */
-@media(min-width:480px){
-  .overlay{align-items:center;padding:16px}
-}
-
 .modal{
   background:#fff;
-  border-radius:20px 20px 0 0;
-  padding:20px 20px 32px;
+  border-radius:16px;
+  padding:20px;
   width:100%;
-  max-width:480px;
+  max-width:400px;
   position:relative;
-  max-height:85vh;
+  max-height:80vh;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
-  animation:slideUp 0.22s ease;
-}
-@media(min-width:480px){
-  .modal{border-radius:16px;padding:24px;max-height:80vh}
+  animation:popIn 0.18s ease;
+  box-shadow:0 8px 40px rgba(0,0,0,0.25);
 }
 
-@keyframes slideUp{
-  from{transform:translateY(60px);opacity:0}
-  to{transform:translateY(0);opacity:1}
+@keyframes popIn{
+  from{transform:scale(0.93);opacity:0}
+  to{transform:scale(1);opacity:1}
 }
 
-/* ドラッグハンドル風 */
-.modal-handle{
-  width:36px;height:4px;background:#d1d1d6;border-radius:2px;
-  margin:0 auto 16px;
-}
-@media(min-width:480px){.modal-handle{display:none}}
+.modal-handle{display:none}
 
 .modal-close{
   position:absolute;top:14px;right:14px;
