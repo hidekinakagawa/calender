@@ -1,55 +1,147 @@
-
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大津市イベントカレンダー</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-.wrap{padding:1rem 0;font-family:var(--font-sans)}
-.tabs{display:flex;gap:8px;margin-bottom:1.2rem}
-.tab{padding:6px 18px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);font-size:14px;font-weight:500;cursor:pointer;background:transparent;color:var(--color-text-secondary)}
-.tab.active{background:var(--color-background-info);color:var(--color-text-info);border-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:#f5f5f7;color:#1d1d1f}
+
+.wrap{padding:16px;max-width:700px;margin:0 auto}
+h1{font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:14px;letter-spacing:0.01em}
+
+/* タブ */
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{padding:7px 20px;border-radius:20px;border:1.5px solid #d1d1d6;font-size:14px;font-weight:500;cursor:pointer;background:#fff;color:#636366;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+.tab.active{background:#0071e3;color:#fff;border-color:#0071e3}
+
+/* カレンダー横スクロールラッパー */
+.cal-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px 4px}
+.cal-scroll::-webkit-scrollbar{height:4px}
+.cal-scroll::-webkit-scrollbar-track{background:#f0f0f0;border-radius:2px}
+.cal-scroll::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:2px}
+
+.cal-wrap{min-width:350px}
+.month-label{font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e5e5ea;border-radius:12px;overflow:hidden;border:1px solid #e5e5ea}
+
+/* 曜日ヘッダー */
+.dh{background:#f2f2f7;padding:6px 2px;text-align:center;font-size:11px;font-weight:600;color:#636366}
+.dh.sun{color:#ff3b30}
+.dh.sat{color:#007aff}
+
+/* 日付セル */
+.dc{background:#fff;min-height:72px;padding:4px 3px;vertical-align:top}
+.dc.empty{background:#f9f9fb}
+.dc.today{outline:2px solid #0071e3;outline-offset:-2px;background:#f0f7ff}
+.dn{font-size:11px;font-weight:600;color:#636366;margin-bottom:3px;line-height:1}
+.dn.sun,.dn.hol{color:#ff3b30}
+.dn.sat{color:#007aff}
+.dn.today-num{color:#0071e3}
+
+/* イベントpill */
+.pill{font-size:9.5px;padding:2px 4px;border-radius:3px;margin-bottom:2px;cursor:pointer;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:opacity 0.1s;border:none;width:100%;text-align:left}
+.pill:active{opacity:0.65}
+.more{font-size:9px;color:#8e8e93;padding:1px 3px}
+
+/* カラー */
+.ev-blue{background:#e8f2fd;color:#0c447c}
+.ev-green{background:#eaf5e0;color:#3b6d11}
+.ev-purple{background:#eeedfe;color:#3c3489}
+.ev-amber{background:#fef3e0;color:#6b4200}
+.ev-coral{background:#fcecea;color:#7d2a13}
+.ev-teal{background:#e0f5ee;color:#085041}
+.ev-kids{background:#fce8ef;color:#72243e}
+
+/* 凡例 */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:#636366}
+.ldot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* ============ モーダル ============ */
+.overlay{
+  display:none;
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.55);
+  z-index:1000;
+  align-items:flex-end; /* スマホ: 下から */
+  justify-content:center;
+  padding:0;
+  -webkit-tap-highlight-color:transparent;
+}
+.overlay.open{display:flex}
+
+/* タブレット以上は中央 */
+@media(min-width:480px){
+  .overlay{align-items:center;padding:16px}
+}
+
+.modal{
+  background:#fff;
+  border-radius:20px 20px 0 0;
+  padding:20px 20px 32px;
+  width:100%;
+  max-width:480px;
+  position:relative;
+  max-height:85vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  animation:slideUp 0.22s ease;
+}
+@media(min-width:480px){
+  .modal{border-radius:16px;padding:24px;max-height:80vh}
+}
+
+@keyframes slideUp{
+  from{transform:translateY(60px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+
+/* ドラッグハンドル風 */
+.modal-handle{
+  width:36px;height:4px;background:#d1d1d6;border-radius:2px;
+  margin:0 auto 16px;
+}
+@media(min-width:480px){.modal-handle{display:none}}
+
+.modal-close{
+  position:absolute;top:14px;right:14px;
+  width:30px;height:30px;border-radius:50%;
+  background:#e5e5ea;border:none;
+  font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:#636366;
+  -webkit-tap-highlight-color:transparent;
+}
+.modal-close:active{background:#d1d1d6}
+
+.modal-tag{display:inline-block;font-size:11px;padding:3px 10px;border-radius:4px;margin-bottom:10px;font-weight:600}
+.modal-title{font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:14px;line-height:1.4}
+.modal-row{display:flex;gap:10px;margin-bottom:8px;font-size:13px}
+.modal-label{color:#8e8e93;min-width:52px;flex-shrink:0;font-size:12px;padding-top:1px}
+.modal-val{color:#1d1d1f;line-height:1.55}
+.modal-divider{border:none;border-top:1px solid #f0f0f0;margin:12px 0}
+.modal-note{font-size:12.5px;color:#636366;line-height:1.65}
 .mblock{display:none}
 .mblock.visible{display:block}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden;border:0.5px solid var(--color-border-tertiary)}
-.dh{background:var(--color-background-secondary);padding:5px 3px;text-align:center;font-size:11px;font-weight:500;color:var(--color-text-secondary)}
-.dh.sun{color:#A32D2D}
-.dh.sat{color:#185FA5}
-.dc{background:var(--color-background-primary);min-height:78px;padding:3px;vertical-align:top}
-.dc.empty{background:var(--color-background-secondary)}
-.dc.today{outline:2px solid var(--color-border-info);outline-offset:-2px}
-.dn{font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:2px}
-.dn.sun,.dn.hol{color:#A32D2D}
-.dn.sat{color:#185FA5}
-.pill{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;cursor:pointer;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity 0.1s;display:block}
-.pill:hover{opacity:0.75}
-.ev-blue{background:#E6F1FB;color:#0C447C}
-.ev-green{background:#EAF3DE;color:#3B6D11}
-.ev-purple{background:#EEEDFE;color:#3C3489}
-.ev-amber{background:#FAEEDA;color:#633806}
-.ev-coral{background:#FAECE7;color:#712B13}
-.ev-teal{background:#E1F5EE;color:#085041}
-.ev-kids{background:#FBEAF0;color:#72243E}
-.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:1rem}
-.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary)}
-.ldot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:100;align-items:center;justify-content:center}
-.overlay.open{display:flex}
-.modal{background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);padding:1.25rem 1.5rem;max-width:400px;width:90%;position:relative;max-height:80vh;overflow-y:auto}
-.modal-close{position:absolute;top:10px;right:14px;font-size:18px;cursor:pointer;color:var(--color-text-secondary);background:none;border:none;line-height:1}
-.modal-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:3px;margin-bottom:8px;font-weight:500}
-.modal-title{font-size:16px;font-weight:500;color:var(--color-text-primary);margin-bottom:12px;line-height:1.4}
-.modal-row{display:flex;gap:10px;margin-bottom:7px;font-size:13px}
-.modal-label{color:var(--color-text-secondary);min-width:52px;flex-shrink:0;font-size:12px}
-.modal-val{color:var(--color-text-primary);line-height:1.5}
-.modal-divider{border:none;border-top:0.5px solid var(--color-border-tertiary);margin:10px 0}
 </style>
-
+</head>
+<body>
 <div class="wrap">
+  <h1>🗓 大津市 イベントカレンダー 2026</h1>
   <div class="tabs">
     <button class="tab active" onclick="showM(0)">4月</button>
     <button class="tab" onclick="showM(1)">5月</button>
     <button class="tab" onclick="showM(2)">6月</button>
   </div>
-  <div id="m0" class="mblock visible"></div>
-  <div id="m1" class="mblock"></div>
-  <div id="m2" class="mblock"></div>
+  <div class="cal-scroll">
+    <div class="cal-wrap">
+      <div id="m0" class="mblock visible"></div>
+      <div id="m1" class="mblock"></div>
+      <div id="m2" class="mblock"></div>
+    </div>
+  </div>
   <div class="legend">
     <div class="leg"><div class="ldot ev-blue"></div>文化・観光</div>
     <div class="leg"><div class="ldot ev-green"></div>子育て・健康</div>
@@ -61,8 +153,10 @@
   </div>
 </div>
 
+<!-- モーダル -->
 <div class="overlay" id="overlay" onclick="closeModal(event)">
   <div class="modal" id="modal">
+    <div class="modal-handle"></div>
     <button class="modal-close" onclick="closeModal()">✕</button>
     <div id="modal-body"></div>
   </div>
@@ -70,16 +164,13 @@
 
 <script>
 const DOW=["日","月","火","水","木","金","土"];
-
-// 2026年の実際の曜日を確認して設定
-// 4月1日(水)=3, 5月1日(金)=5, 6月1日(月)=1
 const MONTHS=[
   {name:"2026年4月",start:3,days:30,holidays:[29]},
   {name:"2026年5月",start:5,days:31,holidays:[3,4,5,6]},
   {name:"2026年6月",start:1,days:30,holidays:[]}
 ];
+const TODAY_MI=0, TODAY_D=22; // 今日
 
-// イベントキー: "月インデックス-日"
 const EVENTS={
   // ===== 4月 =====
   "0-1":[
@@ -176,31 +267,25 @@ function isHol(mi,d){return (MONTHS[mi].holidays||[]).includes(d)}
 function buildMonth(mi){
   const m=MONTHS[mi];
   const el=document.getElementById("m"+mi);
-  let h=`<div style="font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px">${m.name}</div>`;
-  h+=`<div class="cal-grid">`;
-  // ヘッダー行
+  let h=`<div class="month-label">${m.name}</div><div class="cal-grid">`;
   DOW.forEach((d,i)=>{
     const cls=i===0?"sun":i===6?"sat":"";
     h+=`<div class="dh ${cls}">${d}</div>`;
   });
-  // 月頭の空白
   for(let i=0;i<m.start;i++) h+=`<div class="dc empty"></div>`;
-  // 日付セル
   for(let d=1;d<=m.days;d++){
-    // 実際の曜日: (start + d - 1) % 7
     const dow=(m.start+d-1)%7;
-    const isToday=(mi===0&&d===20);
+    const isToday=(mi===TODAY_MI&&d===TODAY_D);
     const hol=isHol(mi,d);
     const nc=hol||dow===0?"hol":dow===6?"sat":"";
     const evs=EVENTS[`${mi}-${d}`]||[];
     let pills="";
     evs.slice(0,3).forEach((e,ei)=>{
-      pills+=`<div class="pill ${e.c}" onclick="openModal(${mi},${d},${ei})">${e.t}</div>`;
+      pills+=`<button class="pill ${e.c}" onclick="openModal(${mi},${d},${ei})">${e.t}</button>`;
     });
-    if(evs.length>3) pills+=`<div style="font-size:10px;color:var(--color-text-tertiary);padding:1px 4px">+${evs.length-3}件</div>`;
-    h+=`<div class="dc${isToday?" today":""}"><div class="dn ${nc}">${d}</div>${pills}</div>`;
+    if(evs.length>3) pills+=`<div class="more">+${evs.length-3}件</div>`;
+    h+=`<div class="dc${isToday?" today":""}"><div class="dn ${nc}${isToday?" today-num":""}">${d}</div>${pills}</div>`;
   }
-  // 月末の空白
   const total=m.start+m.days;
   const rem=(7-total%7)%7;
   for(let i=0;i<rem;i++) h+=`<div class="dc empty"></div>`;
@@ -222,17 +307,25 @@ function openModal(mi,d,ei){
   if(e.target) add("対象",e.target);
   if(e.cap) add("定員",e.cap);
   if(e.stuff) add("持ち物",e.stuff);
-  if(e.note) rows+=`<hr class="modal-divider"><div style="font-size:12px;color:var(--color-text-secondary);line-height:1.6">${e.note}</div>`;
+  if(e.note) rows+=`<hr class="modal-divider"><div class="modal-note">${e.note}</div>`;
   document.getElementById("modal-body").innerHTML=
     `<div class="modal-tag ${e.c}">${e.cat||"イベント"}</div>
      <div class="modal-title">${e.t}</div>${rows}`;
   document.getElementById("overlay").classList.add("open");
+  document.body.style.overflow="hidden";
 }
 
 function closeModal(ev){
-  if(!ev||ev.target===document.getElementById("overlay")||ev.currentTarget.classList.contains("modal-close"))
+  if(!ev||ev.target===document.getElementById("overlay")||ev.currentTarget.classList.contains("modal-close")){
     document.getElementById("overlay").classList.remove("open");
+    document.body.style.overflow="";
+  }
 }
+
+// ESCキーでも閉じる
+document.addEventListener("keydown",e=>{if(e.key==="Escape") closeModal()});
 
 MONTHS.forEach((_,i)=>buildMonth(i));
 </script>
+</body>
+</html>
