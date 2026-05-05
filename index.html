@@ -41,7 +41,8 @@ h1{font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:14px}
 .dn.today-num{color:#0071e3}
 .pill{font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px;margin-bottom:2px;cursor:pointer;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:opacity 0.1s;border:none;width:100%;text-align:left}
 .pill:active{opacity:0.65}
-.cal-more{font-size:9px;color:#8e8e93;padding:1px 3px}
+.cal-more{font-size:10px;color:#0071e3;padding:2px 4px;background:none;border:none;cursor:pointer;text-align:left;font-weight:600;-webkit-tap-highlight-color:transparent;border-radius:3px}
+.cal-more:active{background:#e8f2fd}
 
 /* 凡例 */
 .legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
@@ -399,6 +400,18 @@ const EVENTS={
 
 function isHol(mi,d){return(MONTHS[mi].holidays||[]).includes(d)}
 
+// その日だけのイベントか判定（dateに「〜」「まで」「〜」が含まれない＝単日）
+function isSingleDay(e){
+  return !e.date.includes("〜") && !e.date.includes("まで") && !e.date.includes("～");
+}
+
+// 表示順ソート：単日イベントを先に、複数日イベントを後に
+function sortEvs(evs){
+  const single=evs.filter(e=>isSingleDay(e));
+  const multi=evs.filter(e=>!isSingleDay(e));
+  return [...single,...multi];
+}
+
 function buildCal(mi){
   const m=MONTHS[mi];
   const el=document.getElementById("cal-m"+mi);
@@ -413,12 +426,16 @@ function buildCal(mi){
     const isToday=(mi===TODAY_MI&&d===TODAY_D);
     const hol=isHol(mi,d);
     const nc=hol||dow===0?"hol":dow===6?"sat":"";
-    const evs=EVENTS[`${mi}-${d}`]||[];
+    const evs=sortEvs(EVENTS[`${mi}-${d}`]||[]);
     let pills="";
     evs.slice(0,3).forEach((e,ei)=>{
-      pills+=`<button class="pill ${e.c}" onclick="openModal(${mi},${d},${ei})">${e.t}</button>`;
+      // ソート後のインデックスを元のEVENTSでのインデックスに変換
+      const origEi=(EVENTS[`${mi}-${d}`]||[]).indexOf(e);
+      pills+=`<button class="pill ${e.c}" onclick="openModal(${mi},${d},${origEi})">${e.t}</button>`;
     });
-    if(evs.length>3) pills+=`<div class="cal-more">+${evs.length-3}件</div>`;
+    if(evs.length>3){
+      pills+=`<button class="cal-more" onclick="jumpToList(${mi},${d})">+${evs.length-3}件 ›</button>`;
+    }
     h+=`<div class="dc${isToday?" today":""}"><div class="dn ${nc}${isToday?" today-num":""}">${d}</div>${pills}</div>`;
   }
   const total=m.start+m.days;
@@ -438,7 +455,8 @@ function buildList(mi){
     const dow=(m.start+d-1)%7;
     const hol=isHol(mi,d);
     const dowCls=hol||dow===0?"hol":dow===6?"sat":"";
-    html+=`<div class="day-group">
+    // アンカーIDをday-groupに付与
+    html+=`<div class="day-group" id="list-day-${mi}-${d}">
       <div class="day-header">
         <span>${MONTH_NUMS[mi]}月${d}日</span>
         <span class="dow-badge ${dowCls}">${DOW[dow]}</span>
@@ -473,6 +491,23 @@ function showMonth(idx){
     document.querySelectorAll(`#view-${v} .mblock`).forEach((el,i)=>el.classList.toggle("visible",i===idx));
   });
   document.querySelectorAll(".month-tab").forEach((el,i)=>el.classList.toggle("active",i===idx));
+}
+
+// +N件クリック：リストビューに切り替えてその日にスクロール
+function jumpToList(mi,d){
+  // 月タブを合わせる
+  showMonth(mi);
+  // リストビューに切り替え
+  showView("list");
+  // スクロール（少し遅延させてDOM更新を待つ）
+  setTimeout(()=>{
+    const target=document.getElementById(`list-day-${mi}-${d}`);
+    if(target) target.scrollIntoView({behavior:"smooth",block:"start"});
+    // ハイライト
+    target.style.background="#fffbe6";
+    target.style.borderRadius="10px";
+    setTimeout(()=>{target.style.background="";target.style.borderRadius="";},1500);
+  },80);
 }
 
 function openModal(mi,d,ei){
