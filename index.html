@@ -543,6 +543,10 @@ function closeModal(ev){
 document.addEventListener("keydown",e=>{if(e.key==="Escape") closeModal()});
 
 MONTHS.forEach((_,i)=>{buildCal(i);buildList(i);});
+
+// 開いた時に今月を自動表示（範囲外なら最初の月）
+const initMI=(TODAY_MI>=0&&TODAY_MI<=2)?TODAY_MI:0;
+if(initMI!==0) showMonth(initMI);
 </script>
 </body>
 </html>
