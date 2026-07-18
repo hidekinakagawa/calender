@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大津市地域イベントカレンダー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:#f5f5f7;color:#1d1d1f}
+
+.wrap{padding:16px 16px 8px;max-width:700px;margin:0 auto}
+h1{font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:14px}
+
+/* 表示切り替えタブ */
+.view-tabs{display:flex;background:#e5e5ea;border-radius:10px;padding:2px;margin-bottom:14px;width:fit-content}
+.view-tab{padding:6px 20px;border-radius:8px;border:none;font-size:13px;font-weight:500;cursor:pointer;background:transparent;color:#636366;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+.view-tab.active{background:#fff;color:#1d1d1f;box-shadow:0 1px 4px rgba(0,0,0,0.12)}
+
+/* 月タブ */
+.month-tabs{display:flex;gap:8px;margin-bottom:14px}
+.month-tab{padding:7px 20px;border-radius:20px;border:1.5px solid #d1d1d6;font-size:14px;font-weight:500;cursor:pointer;background:#fff;color:#636366;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+.month-tab.active{background:#0071e3;color:#fff;border-color:#0071e3}
+
+/* カレンダー */
+.cal-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.cal-scroll::-webkit-scrollbar{height:4px}
+.cal-scroll::-webkit-scrollbar-track{background:#f0f0f0;border-radius:2px}
+.cal-scroll::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:2px}
+.cal-wrap{min-width:560px;width:560px}
+.month-label{font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,80px);gap:1px;background:#e5e5ea;border-radius:12px;overflow:hidden;border:1px solid #e5e5ea;width:100%}
+.dh{background:#f2f2f7;padding:6px 2px;text-align:center;font-size:11px;font-weight:600;color:#636366}
+.dh.sun{color:#ff3b30}
+.dh.sat{color:#007aff}
+.dc{background:#fff;min-height:86px;padding:5px 4px}
+.dc.empty{background:#f9f9fb}
+.dc.today{outline:2px solid #0071e3;outline-offset:-2px;background:#f0f7ff}
+.dn{font-size:11px;font-weight:600;color:#636366;margin-bottom:4px;line-height:1}
+.dn.sun,.dn.hol{color:#ff3b30}
+.dn.sat{color:#007aff}
+.dn.today-num{color:#0071e3}
+.pill{font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px;margin-bottom:2px;cursor:pointer;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:opacity 0.1s;border:none;width:100%;text-align:left}
+.pill:active{opacity:0.65}
+.cal-more{font-size:10px;color:#0071e3;padding:2px 4px;background:none;border:none;cursor:pointer;text-align:left;font-weight:600;-webkit-tap-highlight-color:transparent;border-radius:3px}
+.cal-more:active{background:#e8f2fd}
+
+/* 凡例 */
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.leg{display:inline-block;font-size:10px;font-weight:500;padding:3px 8px;border-radius:3px}
+
+/* リスト */
+.day-group{margin-bottom:16px}
+.day-header{font-size:12px;font-weight:600;color:#8e8e93;padding:4px 0 6px;border-bottom:1px solid #e5e5ea;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.dow-badge{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;background:#e5e5ea;color:#636366}
+.dow-badge.sun,.dow-badge.hol{background:#ffeeee;color:#ff3b30}
+.dow-badge.sat{background:#eef4ff;color:#007aff}
+.ev-row{display:flex;align-items:flex-start;gap:10px;padding:10px;background:#fff;border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid #f0f0f0;transition:background 0.1s;-webkit-tap-highlight-color:transparent}
+.ev-row:active{background:#f5f5f7}
+.ev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.ev-info{flex:1;min-width:0}
+.ev-name{font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.4;margin-bottom:2px}
+.ev-sub{font-size:11px;color:#8e8e93;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-cat{flex-shrink:0;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;align-self:center;white-space:nowrap}
+.ev-arrow{font-size:14px;color:#c7c7cc;align-self:center;flex-shrink:0}
+
+/* カラー共通 */
+.ev-jichi{background:#faeeda;color:#633806}
+.ev-blue{background:#e8f2fd;color:#0c447c}
+.ev-green{background:#eaf5e0;color:#3b6d11}
+.ev-purple{background:#eeedfe;color:#3c3489}
+.ev-amber{background:#fef3e0;color:#6b4200}
+.ev-coral{background:#fcecea;color:#7d2a13}
+.ev-teal{background:#e0f5ee;color:#085041}
+.ev-kids{background:#fce8ef;color:#72243e}
+.ev-otsukan{background:#E8F5E9;color:#1B5E20}
+.dot-otsukan{background:#1B5E20}
+
+/* ドット色（リスト用）*/
+.dot-jichi{background:#b87a00}
+.dot-blue{background:#0c447c}
+.dot-green{background:#3b6d11}
+.dot-purple{background:#3c3489}
+.dot-amber{background:#6b4200}
+.dot-coral{background:#7d2a13}
+.dot-teal{background:#085041}
+.dot-kids{background:#72243e}
+.dot-yochien{background:#085041}
+
+/* 表示制御 */
+.view-panel{display:none}
+.view-panel.active{display:block}
+.mblock{display:none}
+.mblock.visible{display:block}
+
+/* モーダル */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:22px 20px;width:100%;max-width:420px;position:relative;max-height:82vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:popIn 0.18s ease;box-shadow:0 8px 40px rgba(0,0,0,0.25)}
+@keyframes popIn{from{transform:scale(0.93);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:#e5e5ea;border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#636366;-webkit-tap-highlight-color:transparent}
+.modal-close:active{background:#d1d1d6}
+.modal-tag{display:inline-block;font-size:11px;padding:3px 10px;border-radius:4px;margin-bottom:10px;font-weight:600}
+.modal-title{font-size:17px;font-weight:600;color:#1d1d1f;margin-bottom:14px;line-height:1.4;padding-right:28px}
+.modal-row{display:flex;gap:10px;margin-bottom:8px;font-size:13px}
+.modal-label{color:#8e8e93;min-width:60px;flex-shrink:0;font-size:12px;padding-top:1px}
+.modal-val{color:#1d1d1f;line-height:1.55}
+.modal-divider{border:none;border-top:1px solid #f0f0f0;margin:12px 0}
+.modal-note{font-size:12.5px;color:#636366;line-height:1.65}
+.modal-link{display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:13px;color:#0071e3;text-decoration:none;padding:8px 14px;border:1.5px solid #0071e3;border-radius:10px;font-weight:500;-webkit-tap-highlight-color:transparent}
+.modal-link:active{background:#f0f7ff}
+.modal-src{font-size:12px;color:#8e8e93;margin-top:10px;font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🗓 大津市 地域イベントカレンダー 2026</h1>
+
+  <!-- 表示切り替え -->
+  <div class="view-tabs">
+    <button class="view-tab active" onclick="showView('cal')">📅 カレンダー</button>
+    <button class="view-tab" onclick="showView('list')">📋 リスト</button>
+  </div>
+
+  <!-- 月タブ（共通） -->
+  <div class="month-tabs">
+    <button class="month-tab active" onclick="showMonth(0)">7月</button>
+    <button class="month-tab" onclick="showMonth(1)">8月</button>
+    <button class="month-tab" onclick="showMonth(2)">9月</button>
+  </div>
+
+  <!-- カレンダービュー -->
+  <div id="view-cal" class="view-panel active">
+    <div class="cal-scroll">
+      <div class="cal-wrap">
+        <div id="cal-m0" class="mblock visible"></div>
+        <div id="cal-m1" class="mblock"></div>
+        <div id="cal-m2" class="mblock"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="leg ev-jichi">自治会回覧</div>
+      <div class="leg ev-amber">地域・まちづくり</div>
+      <div class="leg ev-teal">健康体操・講座</div>
+      <div class="leg ev-green">子育て・健康</div>
+      <div class="leg ev-kids">皇子が丘児童館</div>
+      <div class="leg ev-yochien">志賀幼稚園</div>
+      <div class="leg ev-purple">リズム・習い事</div>
+      <div class="leg ev-coral">ブランチ大津京</div>
+      <div class="leg ev-blue">文化・観光</div>
+      <div class="leg ev-otsukan">びわ湖大津館</div>
+    </div>
+  </div>
+
+  <!-- リストビュー -->
+  <div id="view-list" class="view-panel">
+    <div id="list-m0" class="mblock visible"></div>
+    <div id="list-m1" class="mblock"></div>
+    <div id="list-m2" class="mblock"></div>
+  </div>
+</div>
+
+<!-- モーダル -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const DOW=["日","月","火","水","木","金","土"];
+const MONTHS=[
+  {name:"2026年7月",start:3,days:31,holidays:[20]},
+  {name:"2026年8月",start:6,days:31,holidays:[11]},
+  {name:"2026年9月",start:2,days:30,holidays:[21,22,23]}
+];
+const MONTH_NUMS=[7,8,9];
+const _today=new Date();
+const TODAY_MI=_today.getMonth()-6; // 7月=0, 8月=1, 9月=2
+const TODAY_D=_today.getDate();
+const DOT={
+  "ev-jichi":"dot-jichi",
+  "ev-blue":"dot-blue","ev-green":"dot-green","ev-purple":"dot-purple",
+  "ev-amber":"dot-amber","ev-coral":"dot-coral","ev-teal":"dot-teal",
+  "ev-kids":"dot-kids","ev-yochien":"dot-yochien","ev-otsukan":"dot-otsukan"
+};
+
+
+
+// url=詳細リンク / src=リンク無しの場合の情報源名
+const EVENTS={
+  "0-1":[
+    {t:"西教寺 イクサガミ巨大像 開催中（2/25〜12/31）",c:"ev-blue",cat:"文化・観光",date:"2月25日〜12月31日",loc:"西教寺（大津市坂本5丁目13-1）",note:"ネットフリックス配信 岡田准一主演「イクサガミ」巨大愁二郎像展示",url:"https://otsu-event.site/events/01KP6Y694MR23VEDMNQV24HN13"},
+    {t:"おおつ\"湖都こと文化\"再発見フェスティバル 開催中（〜8/31）",c:"ev-blue",cat:"文化・観光",date:"6月19日〜8月31日",loc:"歴史博物館・スカイプラザ浜大津・伝統芸能会館・市民会館ほか",url:"https://otsu-event.site/events/01KSH9PGWB60P6JEAZ81QA71GW"},
+    {t:"成瀬スタンプラリー 開催中（〜9/30）",c:"ev-amber",cat:"地域・まちづくり",date:"6月27日〜9月30日",loc:"浜大津・大津駅・近江神宮ほか市内各所",url:"https://otsu-event.site/events/01KQAXMYJV5Z0MDPYK6SF4YTCP"},
+    {t:"京阪大津線ナゾ巡り 開催中（〜2027/3/31）",c:"ev-amber",cat:"地域・まちづくり",date:"6月27日〜2027年3月31日",loc:"京阪大津線 各駅",url:"https://otsu-event.site/events/01KQJWWE494EVSPKTGAHM5FR68"},
+    {t:"西教寺 納涼「風鈴参道通り抜け」開催中（〜9/23）",c:"ev-blue",cat:"文化・観光",date:"6月20日〜9月23日",loc:"西教寺（大津市坂本5丁目13-1）",note:"僧侶が手塗したガラス風鈴約4,000個が奉納され涼やかな音色を楽しめる。天候等により予告なく中止の場合あり",url:"https://otsu.or.jp/event"},
+    {t:"子育て講座「子育てで大切にしたいこと」（3歳まで）",c:"ev-green",cat:"子育て・健康",date:"7月1日（水）",time:"10:00〜11:30",loc:"明日都浜大津 ふれあいプラザ5階大会議室",target:"就学前の子どもを持つ保護者",cap:"40名程度",note:"発達の視点からのおはなし。講師：井狩美妃氏（子育てひろばゆめっこ発達相談員）。託児保育あり（8名まで）。申込5/22〜。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"「親子で絵本の世界を楽しもう」申込開始",c:"ev-kids",cat:"皇子が丘児童館",date:"7月1日（水）",loc:"皇子が丘児童館",note:"7月9日（木）ぺんぎんひろば・10日（金）ぱんだひろばで開催の講座「親子で絵本の世界を楽しもう」の申込がこの日から開始。電話か窓口（9〜17時）",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"子育て講座「親子コンサート」申込開始",c:"ev-kids",cat:"皇子が丘児童館",date:"7月1日（水）",loc:"皇子が丘児童館",note:"7月16日（木）開催「親子コンサート」（おひさま楽団）の申込がこの日から開始。電話か窓口（9〜17時）",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"}
+  ],
+  "0-2":[
+    {t:"ぺんぎんひろば",c:"ev-kids",cat:"皇子が丘児童館",date:"7月2日（木）",time:"10:00〜11:00",loc:"皇子が丘児童館",target:"0歳〜1歳6ヶ月の親子",note:"自由参加制。乳児おもちゃ・手押し車・すべり台・ボールプール・体操・ふれあいあそびなど",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"離乳食教室（4〜6ヶ月）",c:"ev-green",cat:"子育て・健康",date:"7月2日（木）",time:"10:30〜11:30",loc:"大津市子育てひろばゆめっこ",target:"第1子とその保護者（4〜6ヶ月）",cap:"6組",stuff:"バスタオル・筆記用具・好きなおもちゃ・離乳食用スプーン",note:"「離乳食をはじめよう」。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "0-3":[
+    {t:"おしゃべりコーナーふらっと",c:"ev-green",cat:"子育て・健康",date:"7月3日（木）",time:"10:00〜11:00 / 13:30〜14:30",loc:"大津市子育てひろばゆめっこ",target:"就学前の子どもを持つ保護者",note:"申込不要",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"ぱんだひろば（子育て支援員来訪）",c:"ev-kids",cat:"皇子が丘児童館",date:"7月3日（金）",time:"10:00〜11:30",loc:"皇子が丘児童館",target:"1歳6ヶ月〜3歳の親子",note:"自由参加制。子育て支援員さんが来られます。自由あそびの合間にお気軽に相談を",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"}
+  ],
+  "0-4":[
+    {t:"♻ 資源ごみ回収日",c:"ev-jichi",cat:"自治会回覧",date:"7月4日（土）",time:"9時までにごみ集積所へ",loc:"ごみ集積所（柳川北自治会）",note:"ゴミ集積所まで運べない場合は、8:30までに家の前に出しておいてください。役員が車で回収に回ります。【対象】雑誌・雑がみ・新聞・段ボール・アルミ缶・古布",url:"https://drive.google.com/file/d/1CpGC3o1Y9FWvOr4UaI2MciNqpGqdcV8Q/view?usp=drive_link"},
+    {t:"なつのお楽しみday",c:"ev-green",cat:"子育て・健康",date:"7月4日（土）",time:"9:00〜12:00（12:00から通常開館）",loc:"大津市子育てひろばゆめっこ（明日都浜大津3階）",note:"短冊を飾ろう・段ボール電車・木のおもちゃ・手形をとろう・紙コプター作り・ぽんぽんヨーヨー作りなど。11:30〜「ゆめころりん」によるおはなし会",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"ワクワク！夏のおおつで遊ぼう！",c:"ev-blue",cat:"文化・観光",date:"7月4日（土）",loc:"子育てひろばゆめっこ（浜大津4丁目1-1）",note:"作って遊んで親子で楽しめる企画",url:"https://otsu-event.site/events/01KVTQVTPTTRC5AXTNB0B5Z64J"},
+    {t:"オーミ七夕まつり",c:"ev-blue",cat:"文化・観光",date:"7月4日（土）",loc:"Oh！Me大津テラス 3階特設会場（大津市打出浜14-30）",note:"あかちゃんハイハイレースや七夕キャンドル作りなど",url:"https://otsu-event.site/events/01KWBV48X510YNKFVN9JK37N2Z"},
+    {t:"大津曳山コンサート",c:"ev-blue",cat:"文化・観光",date:"7月4日（土）",loc:"大津祭曳山展示館（大津市中央1丁目2-27）",note:"大津市後援事業",url:"https://otsu-event.site/events/01KSHD2NCFRM5C18V1NZPPX7KJ"},
+    {t:"献血バス",c:"ev-amber",cat:"地域・まちづくり",date:"7月4日（土）",time:"10:00〜11:30 / 13:00〜16:00",loc:"ブランチ大津京 A駐車場付近",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=7573"}
+  ],
+  "0-5":[
+    {t:"らくらくたなばたコンサート",c:"ev-coral",cat:"ブランチ大津京",date:"7月5日（日）",time:"①11:00〜 ②14:00〜",loc:"ブランチ大津京 さんかく広場",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=7976"}
+  ],
+  "0-6":[{t:"わくわくひろば「体操・うた」",c:"ev-yochien",cat:"志賀幼稚園",date:"7月6日（月）",time:"10:00〜11:20",loc:"大津市立志賀幼稚園",target:"2・3歳児とその保護者",stuff:"上靴・水筒・タオル・帽子・着替え",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"}],
+  "0-7":[
+    {t:"なかよしひろば（7月）",c:"ev-yochien",cat:"志賀幼稚園",date:"7月7日（火）",time:"10:00〜11:20",loc:"大津市立志賀幼稚園",target:"0〜2歳児とその保護者",stuff:"上靴・水筒・タオル・帽子・着替え",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"},
+    {t:"健康推進員養成講座 開幕（〜12/18）",c:"ev-teal",cat:"健康体操・講座",date:"7月7日〜12月18日（全8回）",loc:"明日都浜大津・大津公民館",cap:"15名程度（受講料無料）",note:"地域で健康づくりを推進するヘルスボランティア養成講座。申込：5/20（水）までに健康推進課へ電話 077-528-2742",url:"https://www.shiga-machikyou.jp/file/siki/r8/siki05.pdf",src2:"四季のたより より"},
+    {t:"けん玉に挑戦！申込開始",c:"ev-kids",cat:"皇子が丘児童館",date:"7月7日（火）",loc:"皇子が丘児童館",note:"7月25日（土）開催「けん玉に挑戦！」の申込がこの日から開始。定員20名（先着順）。電話か窓口（9〜17時）",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"}
+  ],
+  "0-8":[
+    {t:"ごぼう先生の椅子体操＆消費者トラブル対策講座",c:"ev-teal",cat:"健康体操・講座",date:"7月8日（水）",time:"椅子体操10:00〜10:45 / 講座10:50〜12:00",loc:"滋賀市民センター 3階大会議室",note:"申込不要・参加費無料。どちらか一方だけの参加もOK。講師：消費生活相談員（大津市消費生活センター）。問合せ：077-526-8585",url:"https://www.shiga-machikyou.jp/file/siki/r8/siki05.pdf",src2:"四季のたより より"},
+    {t:"離乳食教室（7〜9ヶ月）",c:"ev-green",cat:"子育て・健康",date:"7月8日（水）",time:"10:30〜11:30",loc:"大津市子育てひろばゆめっこ",target:"第1子とその保護者（7〜9ヶ月）",cap:"6組",stuff:"バスタオル・筆記用具・好きなおもちゃ・離乳食用スプーン",note:"「離乳食を進めよう」。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "0-9":[
+    {t:"ぺんぎんひろばSP「親子で絵本の世界を楽しもう」",c:"ev-kids",cat:"皇子が丘児童館",date:"7月9日（木）",time:"10:00〜11:00（受付9:45〜）",loc:"皇子が丘児童館 2階遊戯室",target:"0歳〜1歳6ヶ月の親子",cap:"15組（先着順）",note:"絵本の選び方や読み聞かせの大切さを学ぶ。講師：西本麻理子氏（大津市立図書館司書）。申込7/1〜。電話か窓口（9〜17時）",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"}
+  ],
+  "0-10":[
+    {t:"子育て講座「子育てで大切にしたいこと」（3〜5歳）",c:"ev-green",cat:"子育て・健康",date:"7月10日（金）",time:"10:00〜11:30",loc:"明日都浜大津 ふれあいプラザ5階大会議室",target:"就学前の子どもを持つ保護者",cap:"40名程度",note:"発達の視点からのおはなし。講師：井狩美妃氏（子育てひろばゆめっこ発達相談員）。託児保育あり（8名まで）。申込5/22〜。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"ぱんだひろばSP「親子で絵本の世界を楽しもう」",c:"ev-kids",cat:"皇子が丘児童館",date:"7月10日（金）",time:"10:00〜11:00（受付9:45〜）",loc:"皇子が丘児童館 2階遊戯室",target:"1歳6ヶ月〜3歳の親子",cap:"15組（先着順）",note:"絵本の選び方や読み聞かせの大切さを学ぶ。講師：西本麻理子氏（大津市立図書館司書）。申込7/1〜。電話か窓口（9〜17時）",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"}
+  ],
+  "0-11":[
+    {t:"手作りマルシェ（1日目/2日間）",c:"ev-coral",cat:"ブランチ大津京",date:"7月11日（土）〜12日（日）",loc:"ブランチさんかく広場・近江神宮外苑公園",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=2650"},
+    {t:"住まいづくりフェア",c:"ev-coral",cat:"ブランチ大津京",date:"7月11日（土）",time:"10:00〜16:00",loc:"ブランチ大津京 さんかく広場",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=7971"},
+    {t:"かぶと虫の家 開幕（〜8/16）",c:"ev-blue",cat:"文化・観光",date:"7月11日（土）〜8月16日（日）",loc:"比叡山ドライブウェイ・夢見が丘（大津市山中町）",url:"https://otsu-event.site/events/01KEJH4Y9T0HZHMTJFXG6ZE2YN"}
+  ],
+  "0-12":[
+    {t:"手作りマルシェ（2日目/2日間）",c:"ev-coral",cat:"ブランチ大津京",date:"7月11日（土）〜12日（日）",loc:"ブランチさんかく広場・近江神宮外苑公園",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=2650"}
+  ],
+  "0-13":[
+    {t:"わくわくひろば（7月）",c:"ev-yochien",cat:"志賀幼稚園",date:"7月13日（月）",time:"10:00〜11:20",loc:"大津市立志賀幼稚園",target:"2・3歳児とその保護者",stuff:"上靴・水筒・タオル・帽子・着替え",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"}
+  ],
+  "0-14":[
+    {t:"なかよしひろば（7月）",c:"ev-yochien",cat:"志賀幼稚園",date:"7月14日（火）",time:"10:00〜11:20",loc:"大津市立志賀幼稚園",target:"0〜2歳児とその保護者",stuff:"上靴・水筒・タオル・帽子・着替え",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"},
+    {t:"やまぞえ健康メソッド講座",c:"ev-teal",cat:"健康体操・講座",date:"7月14日（火）",time:"10:00〜11:30",loc:"滋賀市民センター 3階大会議室",stuff:"お茶（水）・タオル（軽運動できる服装）",note:"運動・栄養・笑いヨガですこやかに！講師：山添ヒロコ先生・山添ジュンジ先生（やまぞえメソッド）。申込締切7/10。申込先：077-526-8585",url:"https://www.shiga-machikyou.jp/kouhou.html#jichi",src2:"四季のたより より"}
+  ],
+  "0-15":[
+     {t:"プチ保健講座「夏に多く見られる病気・熱中症予防」",c:"ev-green",cat:"子育て・健康",date:"7月15日（水）",time:"11:10〜／14:10〜",loc:"大津市子育てひろばゆめっこ",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "0-16":[
+    {t:"子育て講座「親子コンサート」おひさま楽団",c:"ev-kids",cat:"皇子が丘児童館",date:"7月16日（木）",time:"10:15〜11:00（受付10:00〜）",loc:"皇子が丘児童館 2階会議室",target:"0歳〜3歳の親子",cap:"15組（先着順）",note:"楽しい音楽で素敵な時間を。講師：おひさま楽団。申込7/1〜。電話か窓口（9〜17時）",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"}
+  ],
+  "0-17":[
+    {t:"カンガルー教室（交通安全）",c:"ev-kids",cat:"皇子が丘児童館",date:"7月17日（金）",time:"13:40〜14:50（受付13:30〜）",loc:"皇子が丘児童館 2階会議室・近隣の公園（雨天時は室内）",target:"小学生・中学生",stuff:"お茶・タオル・ぼうし",note:"自転車がある人はヘルメットをかぶって来てください。申込不要",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"リフレッシュ講座「手作りおもちゃを作ろう」",c:"ev-green",cat:"子育て・健康",date:"7月17日（金）",time:"10:00〜11:00",loc:"大津市子育てひろばゆめっこ",target:"就学前の子どもを持つ保護者",cap:"10名",stuff:"水分補給できるもの（材料はゆめっこで準備）",note:"ひんやりおもちゃを作ろう。講師：ゆめっこ職員。託児保育あり（8名まで）。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "0-18":[
+    {t:"映画「破戒」上映会",c:"ev-amber",cat:"地域・まちづくり",date:"7月18日（土）",time:"午前9時30分〜",loc:"滋賀市民センター 3階大会議室",note:"上映代金無料。主催：人権を考える大津市民のつどい皇子山第一ブロック。協賛：滋賀学区「人権・生涯」学習推進協議会",url:"https://www.shiga-machikyou.jp/kouhou.html#jichi",src2:"四季のたより より"},
+    {t:"大河ドラマ「豊臣兄弟！」トークショーin大津",c:"ev-blue",cat:"文化・観光",date:"7月18日（土）",loc:"大津市歴史博物館（御陵町2-2）",url:"https://otsu-event.site/events/01KSH9PGWBH0X0WR18HTDN08DX"},
+    {t:"生涯学習センター 子ども映画会",c:"ev-blue",cat:"文化・観光",date:"7月18日（土）",loc:"大津市生涯学習センター（大津市本丸町6-50）",note:"入場無料",url:"https://otsu-event.site/events/01KVTSYJBDGPBGAW94PFA9EZM8"},
+    {t:"まめまめわらべうたおはなし会（7月）",c:"ev-blue",cat:"文化・観光",date:"7月18日（土）",loc:"大津市立図書館本館 3階視聴覚ホール（浜大津2-1-3）",note:"入場無料",url:"https://otsu-event.site/events/01KWBWSNVE39HG04SN850SE5V5"},
+    {t:"フォトグラファーに学ぶ 伝わる発信のための写真・SNS見せ方講座",c:"ev-blue",cat:"文化・観光",date:"7月18日（土）",loc:"ナカマチスタジオ（大津市長等2丁目9-7）",url:"https://otsu-event.site/events/01KTBVBTEFVJS7BQWGGAF2HQY9"},
+    {t:"近江神宮 夏のライトアップ 開幕（〜8/23）",c:"ev-blue",cat:"文化・観光",date:"7月18日〜8月23日 土・日・祝日および8/14",time:"日没〜21:00頃",loc:"近江神宮（大津市神宮町1-1）",note:"「12色の光時計」「光の百人一首」ライトアップ演出・プロジェクションマッピング。入場料：大人600円・小中学生300円・未就学児無料",url:"https://otsu.or.jp/event/omijingu_summerillumi"}
+  ],
+  "0-19":[
+    {t:"こどもワークショップ あそびにっく",c:"ev-coral",cat:"ブランチ大津京",date:"7月19日（日）",time:"11:00〜15:00",loc:"ブランチ大津京 2階ニトリ横",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=5207"}
+  ],
+  "0-20":[
+    {t:"海の日（祝日）",c:"ev-amber",cat:"地域・まちづくり",date:"7月20日（月）",loc:""},
+    {t:"わくわくスノーランド",c:"ev-coral",cat:"ブランチ大津京",date:"7月20日（月・祝）",loc:"ブランチ大津京 さんかく広場",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=7250"},
+    {t:"第196回ミニ企画展 最終日（6/2〜）",c:"ev-blue",cat:"文化・観光",date:"6月2日〜7月20日",loc:"大津市歴史博物館（御陵町2-2）",url:"https://otsu-event.site/events/01KMPV60QRXET43NXAJ7A5T3TF"}
+  ],
+  "0-21":[
+    {t:"「科学あそびを楽しもう！」申込開始",c:"ev-kids",cat:"皇子が丘児童館",date:"7月21日（火）",loc:"皇子が丘児童館",note:"8月1日（土）開催「科学あそびを楽しもう！」の申込がこの日から開始。定員になり次第締切。詳しくは8月号でお知らせ",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"}
+  ],
+  "0-22":[
+    {t:"あかちゃんとおでかけ（1日目/2日間）",c:"ev-green",cat:"子育て・健康",date:"7月22日（水）・29日（水）",time:"10:30〜11:30",loc:"大津市子育てひろばゆめっこ",target:"第1子とその保護者（7/29時点で0〜3ヶ月）",cap:"8組",stuff:"バスタオルまたはおくるみ",note:"2回連続講座。両日参加できる方のみ。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"ごぼう先生 いきいき椅子体操",c:"ev-teal",cat:"健康体操・講座",date:"7月22日（水）",time:"10:00〜11:00",loc:"滋賀コミュニティセンター 3階大会議室",note:"運動できる服装。問合せ：077-526-8585",url:"https://www.shiga-machikyou.jp/file/siki/r8/siki05.pdf",src2:"四季のたより より"}
+  ],
+  "0-23":[
+    {t:"ブランチキッズ探検隊 vol.9",c:"ev-coral",cat:"ブランチ大津京",date:"7月23日（木）",loc:"ブランチ大津京",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=4376"}
+  ],
+  "0-24":[
+    {t:"あかちゃんとあそぼう（4〜6ヶ月）",c:"ev-green",cat:"子育て・健康",date:"7月24日（金）",time:"10:00〜11:00",loc:"大津市子育てひろばゆめっこ",target:"第1子とその保護者（4〜6ヶ月）",cap:"8組",note:"月齢に応じたあそびの紹介や保護者同士の交流。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "0-25":[
+    {t:"おとうさんあつまれ！",c:"ev-green",cat:"子育て・健康",date:"7月25日（土）",time:"10:00〜11:00",loc:"大津市子育てひろばゆめっこ",note:"就学前の子どもとその父親。申込不要。途中参加・途中退室できます",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"けん玉に挑戦！",c:"ev-kids",cat:"皇子が丘児童館",date:"7月25日（土）",time:"14:00〜16:30（受付13:45〜）",loc:"皇子が丘児童館 2階遊戯室",target:"小学生・中学生・高校生",cap:"20名（先着順）",stuff:"お茶・タオル・けん玉（ない場合は貸出あり）",note:"けん玉の技や遊び方・級の検定も受けられます。講師：福井光代氏（玉川けん玉教室）。申込7/7〜。電話か窓口（9〜17時）",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"夏の思い出「オリジナルうちわ」作り（1日目/2日間）",c:"ev-otsukan",cat:"びわ湖大津館",date:"7月25日（土）〜26日（日）",time:"11:00〜15:00",loc:"びわ湖大津館内1階特設会場（大津市柳が崎5-35）",note:"料金100円/1枚。材料なくなり次第終了",url:"https://www.biwako-otsukan.jp/event_detail.php?no=204"},
+    {t:"サマーブランチ抽選会（1日目/2日間）",c:"ev-coral",cat:"ブランチ大津京",date:"7月25日（土）〜26日（日）",loc:"ブランチさんかく広場",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=8019"}
+  ],
+  "0-26":[
+    {t:"みんなでモルックしよう！",c:"ev-jichi",cat:"自治会回覧",date:"7月26日（日）",time:"10:00〜 ",loc:"勧学自治会館　１階",note:"初めての方でも簡単に楽しめます。どなたでもどうぞ！"},
+    {t:"こども陶芸工作教室【予約制】",c:"ev-otsukan",cat:"びわ湖大津館",date:"7月26日（日）",time:"10:30〜12:00",loc:"びわ湖大津館（大津市柳が崎5-35）",note:"夏休み自由研究お助け企画！粘土遊びの感覚で作品作り。料金3,000円（ガーデン入園料込み）。講師：比良麓湖窯 加藤和宏先生。持ち物：エプロンor汚れても良い服・お手拭き用タオル",url:"https://www.biwako-otsukan.jp/event_detail.php?no=246"},
+    {t:"夏の思い出「オリジナルうちわ」作り（2日目/2日間）",c:"ev-otsukan",cat:"びわ湖大津館",date:"7月25日（土）〜26日（日）",time:"11:00〜15:00",loc:"びわ湖大津館内1階特設会場（大津市柳が崎5-35）",note:"料金100円/1枚。材料なくなり次第終了",url:"https://www.biwako-otsukan.jp/event_detail.php?no=204"},
+    {t:"サマーブランチ抽選会（2日目/2日間）",c:"ev-coral",cat:"ブランチ大津京",date:"7月25日（土）〜26日（日）",loc:"ブランチさんかく広場",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=8019"}
+  ],
+  "0-28":[
+    {t:"家族もぐもぐクッキング「夏野菜ピザ」",c:"ev-green",cat:"子育て・健康",date:"7月28日（火）",time:"10:00〜11:30",loc:"大津市子育てひろばゆめっこ",target:"2歳〜就学前の子どもとその保護者",cap:"6組",stuff:"エプロン・マスク・三角巾・飲み物",note:"旬の夏野菜を使った夏野菜ピザを親子で作ろう。参加費200円/人。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"KEIBUN文化講座 最終日（4/17〜）",c:"ev-blue",cat:"文化・観光",date:"4月17日〜7月28日",loc:"しがぎんホール（大津市浜町1-38）",url:"https://otsu-event.site/events/01KGB74NSZJ6QC335SJEEQ4BMQ"}
+  ],
+   "0-29":[
+    {t:"カロムで遊ぼう",c:"ev-kids",cat:"皇子が丘児童館",date:"7月29日（水）",time:"13:30〜15:00",loc:"皇子が丘児童館 2階遊戯室",target:"小学生・中学生・高校生",note:"いろいろな人と対戦してカロムを楽しもう。職員がルールを教えますので初心者でも大丈夫です。",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"}
+  ],
+
+  /* ======== 8月（MI=1） ======== */
+  "1-1":[
+    {t:"♻ 資源ごみ回収日",c:"ev-jichi",cat:"自治会回覧",date:"8月1日（土）",time:"9時までにごみ集積所へ",loc:"ごみ集積所（柳川北自治会）",note:"ゴミ集積所まで運べない場合は、8:30までに家の前に出しておいてください。役員が車で回収に回ります。【対象】雑誌・雑がみ・新聞・段ボール・アルミ缶・古布",url:"https://drive.google.com/file/d/1CpGC3o1Y9FWvOr4UaI2MciNqpGqdcV8Q/view?usp=drive_link"},
+    {t:"西教寺 イクサガミ巨大像 開催中（2/25〜12/31）",c:"ev-blue",cat:"文化・観光",date:"2月25日〜12月31日",loc:"西教寺（大津市坂本5丁目13-1）",url:"https://otsu-event.site/events/01KP6Y694MR23VEDMNQV24HN13"},
+    {t:"おおつ\"湖都こと文化\"再発見フェスティバル 開催中（〜8/31）",c:"ev-blue",cat:"文化・観光",date:"6月19日〜8月31日",loc:"歴史博物館・スカイプラザ浜大津・伝統芸能会館・市民会館ほか",url:"https://otsu-event.site/events/01KSH9PGWB60P6JEAZ81QA71GW"},
+    {t:"成瀬スタンプラリー 開催中（〜9/30）",c:"ev-amber",cat:"地域・まちづくり",date:"6月27日〜9月30日",loc:"浜大津・大津駅・近江神宮ほか市内各所",url:"https://otsu-event.site/events/01KQAXMYJV5Z0MDPYK6SF4YTCP"},
+    {t:"京阪大津線ナゾ巡り 開催中（〜2027/3/31）",c:"ev-amber",cat:"地域・まちづくり",date:"6月27日〜2027年3月31日",loc:"京阪大津線 各駅",url:"https://otsu-event.site/events/01KQJWWE494EVSPKTGAHM5FR68"},
+    {t:"西教寺 納涼「風鈴参道通り抜け」開催中（〜9/23）",c:"ev-blue",cat:"文化・観光",date:"6月20日〜9月23日",loc:"西教寺（大津市坂本5丁目13-1）",note:"僧侶が手塗したガラス風鈴約4,000個が奉納され涼やかな音色を楽しめる",url:"https://otsu.or.jp/event"},
+    {t:"科学あそびを楽しもう！",c:"ev-kids",cat:"皇子が丘児童館",date:"8月1日（土）",time:"14:00〜15:30（受付13:45〜）",loc:"皇子が丘児童館 2階遊戯室",target:"小学生以上",cap:"15名（先着順）",stuff:"作品用袋・お茶・タオル",note:"不思議がいっぱいつまった科学あそびを楽しもう！講師：米平有里氏（教育センター）。申込7/21〜",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"【皇子が丘児童館】長期休館のお知らせ（9/1〜翌3月頃）",c:"ev-kids",cat:"皇子が丘児童館",date:"9月1日〜翌年3月頃予定",loc:"皇子が丘児童館",note:"施設安全向上のための耐震工事により長期休館。再開日は大津市HP・おおつ子育てアプリ「とも☆育」・わんぱくだより等でお知らせ",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"かぶと虫の家 開催中（7/11〜8/16）",c:"ev-blue",cat:"文化・観光",date:"7月11日〜8月16日",loc:"比叡山ドライブウェイ・夢見が丘（大津市山中町）",url:"https://otsu-event.site/events/01KEJH4Y9T0HZHMTJFXG6ZE2YN"},
+    {t:"Bunkyouギャラリー 7月展「木工たちのアウトドア」開催中",c:"ev-teal",cat:"健康体操・講座",date:"7月（期間詳細未定）",loc:"滋賀コミュニティセンター Bunkyouギャラリー",url:"https://www.shiga-machikyou.jp/kouhou.html#jichi",src2:"四季のたより より"},
+    {t:"近江神宮 夏のライトアップ ",c:"ev-blue",cat:"文化・観光",date:"7月18日〜8月23日 土・日・祝日および8/14",time:"日没〜21:00頃",loc:"近江神宮（大津市神宮町1-1）",note:"「12色の光時計」「光の百人一首」ライトアップ演出・プロジェクションマッピング。入場料：大人600円・小中学生300円・未就学児無料",url:"https://otsu.or.jp/event/omijingu_summerillumi"}
+  ],
+  "1-4":[
+    {t:"ブランチキッズ探検隊 vol.9",c:"ev-coral",cat:"ブランチ大津京",date:"8月4日（火）",loc:"ブランチ大津京",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=4376"},
+    {t:"木工工作・テクスチャーアート 申込開始",c:"ev-kids",cat:"皇子が丘児童館",date:"8月4日（火）",time:"9:00〜",loc:"皇子が丘児童館",note:"8/21（金）①ミニスマートボールを作ろう・8/25（火）②テクスチャーアートのいずれか1つを選び申込。電話または直接児童館へ",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"プチ保健講座「防災について」",c:"ev-green",cat:"子育て・健康",date:"8月4日（火）",time:"11:10〜／14:10〜",loc:"大津市子育てひろばゆめっこ",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"おしゃべりコーナーふらっと「きょうだい育児」",c:"ev-green",cat:"子育て・健康",date:"8月4日（火）",time:"13:30〜14:30",loc:"大津市子育てひろばゆめっこ",target:"就学前の子どもを持つ保護者",cap:"8組",note:"要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"離乳食教室（4〜6ヶ月）",c:"ev-green",cat:"子育て・健康",date:"8月4日（火）",time:"10:30〜11:30",loc:"大津市子育てひろばゆめっこ",target:"第1子とその保護者（4〜6ヶ月）",cap:"6組",stuff:"バスタオル・筆記用具・好きなおもちゃ・離乳食用スプーン",note:"「離乳食をはじめよう」。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "1-5":[
+    {t:"子育て相談「食事について」",c:"ev-green",cat:"子育て・健康",date:"8月5日（水）",time:"9:30〜12:00",loc:"大津市子育てひろばゆめっこ",note:"専門の相談員による相談（1組40分程度）。電話・窓口・電子申請などで要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "1-6":[
+    {t:"第40回記念大会 2026 びわ湖大花火大会",c:"ev-blue",cat:"文化・観光",date:"8月6日（木）",loc:"大津市浜大津",url:"https://otsu-event.site/events/01KQAXMY3MXFR9EJZ08EB5ESHD"},
+    {t:"ブランチ夜市",c:"ev-coral",cat:"ブランチ大津京",date:"8月6日（木）",time:"16:00〜21:30",loc:"マックスバリュ前特設会場",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=8037"}
+  ],
+  "1-7":[
+    {t:"親子ふれあい活動「おもちゃランド」",c:"ev-kids",cat:"皇子が丘児童館",date:"8月7日（金）",time:"10:00〜11:00",loc:"皇子が丘児童館 2階会議室",target:"0歳〜3歳の親子",note:"大型トランポリンとジャングルジムを出します。親子で見守りながらあそびましょう！自由参加制。プレイルームも利用可",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"子育て相談「子育てについて」",c:"ev-green",cat:"子育て・健康",date:"8月7日（金）",time:"9:00〜16:00",loc:"大津市子育てひろばゆめっこ",note:"専門の相談員による相談（1組40分程度）。電話・窓口・電子申請などで要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+   "1-8":[    
+    {t:"手作りマルシェ（1日目/2日間）",c:"ev-coral",cat:"ブランチ大津京",date:"8月8日（土）〜9日（日）",loc:"ブランチさんかく広場・近江神宮外苑公園",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=2650"}
+  ],
+   "1-9":[    
+    {t:"手作りマルシェ（2日目/2日間）",c:"ev-coral",cat:"ブランチ大津京",date:"8月8日（土）〜9日（日）",loc:"ブランチさんかく広場・近江神宮外苑公園",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=2650"}
+  ],
+  "1-11":[
+    {t:"山の日（祝日）",c:"ev-amber",cat:"地域・まちづくり",date:"8月11日（火）",loc:""}
+  ],
+  "1-12":[
+    {t:"ごぼう先生 いきいき椅子体操",c:"ev-teal",cat:"健康体操・講座",date:"8月12日（水）",time:"10:00〜11:00",loc:"滋賀市民センター 3階大会議室",note:"運動できる服装。問合せ：077-526-8585",url:"https://www.shiga-machikyou.jp/kouhou.html#jichi",src2:"四季のたより より"}
+  ],
+  "1-18":[
+    {t:"リフレッシュ講座「ゆったり自分の時間を過ごそう」",c:"ev-green",cat:"子育て・健康",date:"8月18日（火）",time:"10:00〜11:00",loc:"大津市子育てひろばゆめっこ",target:"就学前の子どもを持つ保護者",cap:"10名",stuff:"自分のしたいもの",note:"本を読んだり写真を整理したりしてゆったり過ごそう。託児保育あり（8名まで）。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "1-16":[
+    {t:"かぶと虫の家 最終日（7/11〜）",c:"ev-blue",cat:"文化・観光",date:"7月11日〜8月16日",loc:"比叡山ドライブウェイ・夢見が丘（大津市山中町）",url:"https://otsu-event.site/events/01KEJH4Y9T0HZHMTJFXG6ZE2YN"}
+  ],
+  "1-21":[
+    {t:"あかちゃんとおでかけ（1日目/2日間）",c:"ev-green",cat:"子育て・健康",date:"8月21日（金）・28日（金）",time:"10:30〜11:30",loc:"大津市子育てひろばゆめっこ",target:"第1子とその保護者（8/28時点で0〜3ヶ月）",cap:"8組",stuff:"バスタオルまたはおくるみ",note:"2回連続講座。両日参加できる方のみ。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"①木工工作「ミニスマートボールを作ろう」",c:"ev-kids",cat:"皇子が丘児童館",date:"8月21日（金）",time:"14:30〜16:30（受付14:15〜）",loc:"皇子が丘児童館 2階遊戯室",target:"小学生以上",cap:"20名（先着順）",stuff:"色鉛筆・作品用袋・お茶・タオル",note:"木工ダボとかなづちを使って作ります。参加費無料。講師：地域福祉サポーター「とんかち」。申込8/4〜",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"子育て相談「母と子の健康について」",c:"ev-green",cat:"子育て・健康",date:"8月21日（金）",time:"13:30〜15:00",loc:"大津市子育てひろばゆめっこ",note:"専門の相談員による相談（1組40分程度）。電話・窓口・電子申請などで要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "1-22":[
+    {t:"おとうさんあつまれ！",c:"ev-green",cat:"子育て・健康",date:"8月22日（土）",time:"10:00〜11:00",loc:"大津市子育てひろばゆめっこ",note:"就学前の子どもとその父親。申込不要。途中参加・途中退室できます",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "1-20":[
+    {t:"ブランチキッズ探検隊 vol.9",c:"ev-coral",cat:"ブランチ大津京",date:"8月20日（木）",loc:"ブランチ大津京",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=7885"}
+  ],
+  "1-23":[
+    {t:"近江神宮 夏のライトアップ 最終日（7/18〜）",c:"ev-blue",cat:"文化・観光",date:"7月18日〜8月23日 土・日・祝日および8/14",time:"日没〜21:00頃",loc:"近江神宮（大津市神宮町1-1）",note:"「12色の光時計」「光の百人一首」ライトアップ演出・プロジェクションマッピング。入場料：大人600円・小中学生300円・未就学児無料",url:"https://otsu.or.jp/event/omijingu_summerillumi"}
+  ],
+  "1-25":[
+    {t:"②テクスチャーアート「じぶんだけのオリジナルアートを作ろう！」",c:"ev-kids",cat:"皇子が丘児童館",date:"8月25日（火）",time:"10:30〜11:45（受付10:15〜）",loc:"皇子が丘児童館 2階会議室",target:"小学生",cap:"15名（先着順）",stuff:"汚れてもよい服・お茶・作品用袋・タオル",note:"アクリルえのぐとデコボコふわふわのペーストで立体アートを作成。かるがもクラブ共催。参加費無料。講師：澤田美香氏（Pace Art）。申込8/4〜",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"}
+  ],
+  "1-26":[
+    {t:"ごぼう先生 いきいき椅子体操",c:"ev-teal",cat:"健康体操・講座",date:"8月26日（水）",time:"10:00〜11:00",loc:"滋賀市民センター 3階大会議室",note:"運動できる服装。問合せ：077-526-8585",url:"https://www.shiga-machikyou.jp/kouhou.html#jichi",src2:"四季のたより より"},
+    {t:"子育て相談「発達や成長について」",c:"ev-green",cat:"子育て・健康",date:"8月26日（水）",time:"13:30〜16:00",loc:"大津市子育てひろばゆめっこ",note:"専門の相談員による相談（1組40分程度）。電話・窓口・電子申請などで要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"},
+    {t:"家族もぐもぐクッキング「夏野菜ピザ」",c:"ev-green",cat:"子育て・健康",date:"8月26日（水）",time:"10:00〜11:30",loc:"大津市子育てひろばゆめっこ",target:"2歳〜就学前の子どもとその保護者",cap:"6組",stuff:"エプロン・マスク・三角巾（大人も子どもも必要）・飲み物",note:"旬の夏野菜ピザを親子で。参加費200円/人。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "1-27":[
+    {t:"育ち合い広場\"ぷちゆめそだち\" 開幕（〜10/1・全4回）",c:"ev-green",cat:"子育て・健康",date:"8月27日〜10月1日 毎週木曜（全4回）",time:"10:00〜11:00",loc:"大津市子育てひろばゆめっこ",target:"6〜8か月（令和7年12月〜令和8年2月生まれ）の子どもとその保護者",cap:"8組程度（申込多数の場合は抽選）",note:"子育ての不安を語り合いながら親子で楽しくあそぶ。申込期間：7/30〜8/6にゆめっこへ直接来館か電話で",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "1-28":[
+    {t:"AKOタイム",c:"ev-kids",cat:"皇子が丘児童館",date:"8月28日（金）",time:"13:00〜14:00",loc:"皇子が丘児童館",target:"小学生・中学生・高校生（乳幼児親子の参加も大歓迎）",note:"あんぜん・きれい・おはなしおたのしみの活動。申込不要。この活動中、小学生以上の人は他のあそびはできません",url:"https://www.city.otsu.lg.jp/soshiki/015/c/40851.html"},
+    {t:"あかちゃんとおでかけ（2日目/2日間）",c:"ev-green",cat:"子育て・健康",date:"8月21日（金）・28日（金）",time:"10:30〜11:30",loc:"大津市子育てひろばゆめっこ",target:"第1子とその保護者（0〜3ヶ月）",note:"2回連続第2回。要申込",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "1-29":[
+    {t:"【皇子が丘児童館】忘れもの引き取り期限",c:"ev-kids",cat:"皇子が丘児童館",date:"8月29日（土）",loc:"皇子が丘児童館",note:"長期間放置されている忘れものは告知期間後に処分。お心当たりの方はこの日までにお引き取りを"}
+  ],
+  "1-31":[
+    {t:"おおつ\"湖都こと文化\"再発見フェスティバル 最終日（6/19〜）",c:"ev-blue",cat:"文化・観光",date:"6月19日〜8月31日",loc:"歴史博物館・スカイプラザ浜大津・伝統芸能会館・市民会館ほか",url:"https://otsu-event.site/events/01KSH9PGWB60P6JEAZ81QA71GW"},
+    {t:"成瀬スタンプラリー 開催中（〜9/30）",c:"ev-amber",cat:"地域・まちづくり",date:"6月27日〜9月30日",loc:"浜大津・大津駅・近江神宮ほか市内各所",url:"https://otsu-event.site/events/01KQAXMYJV5Z0MDPYK6SF4YTCP"},
+    {t:"京阪大津線ナゾ巡り 開催中（〜2027/3/31）",c:"ev-amber",cat:"地域・まちづくり",date:"6月27日〜2027年3月31日",loc:"京阪大津線 各駅",url:"https://otsu-event.site/events/01KQJWWE494EVSPKTGAHM5FR68"},
+    {t:"西教寺 納涼「風鈴参道通り抜け」開催中（〜9/23）",c:"ev-blue",cat:"文化・観光",date:"6月20日〜9月23日",loc:"西教寺（大津市坂本5丁目13-1）",url:"https://otsu.or.jp/event"}
+  ],
+  /* ======== 9月（MI=2） ======== */
+  "2-1":[
+    {t:"西教寺 イクサガミ巨大像 開催中（2/25〜12/31）",c:"ev-blue",cat:"文化・観光",date:"2月25日〜12月31日",loc:"西教寺（大津市坂本5丁目13-1）",url:"https://otsu-event.site/events/01KP6Y694MR23VEDMNQV24HN13"},
+    {t:"成瀬スタンプラリー 最終日（6/27〜）",c:"ev-amber",cat:"地域・まちづくり",date:"6月27日〜9月30日",loc:"浜大津・大津駅・近江神宮ほか市内各所",url:"https://otsu-event.site/events/01KQAXMYJV5Z0MDPYK6SF4YTCP"},
+    {t:"京阪大津線ナゾ巡り 開催中（〜2027/3/31）",c:"ev-amber",cat:"地域・まちづくり",date:"6月27日〜2027年3月31日",loc:"京阪大津線 各駅",url:"https://otsu-event.site/events/01KQJWWE494EVSPKTGAHM5FR68"},
+    {t:"西教寺 納涼「風鈴参道通り抜け」開催中（〜9/23）",c:"ev-blue",cat:"文化・観光",date:"6月20日〜9月23日",loc:"西教寺（大津市坂本5丁目13-1）",url:"https://otsu.or.jp/event"}
+  ],
+ "2-3":[
+    {t:"育ち合い広場\"ぷちゆめそだち\"（2回目）",c:"ev-green",cat:"子育て・健康",date:"9月3日（木）",time:"10:00〜11:00",loc:"大津市子育てひろばゆめっこ",target:"6〜8か月の子どもとその保護者",note:"8/27開始の全4回連続講座（2回目）",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+ "2-5":[
+    {t:"♻ 資源ごみ回収日",c:"ev-jichi",cat:"自治会回覧",date:"9月5日（土）",time:"9時までにごみ集積所へ",loc:"ごみ集積所（柳川北自治会）",note:"ゴミ集積所まで運べない場合は、8:30までに家の前に出しておいてください。役員が車で回収に回ります。【対象】雑誌・雑がみ・新聞・段ボール・アルミ缶・古布",url:"https://drive.google.com/file/d/1CpGC3o1Y9FWvOr4UaI2MciNqpGqdcV8Q/view?usp=drive_link"}
+  ],
+  "2-7":[
+    {t:"わくわくひろば「いろいろな感触を楽しんで遊ぼう」",c:"ev-yochien",cat:"志賀幼稚園",date:"9月7日（月）",time:"10:00〜11:20",loc:"大津市立志賀幼稚園",target:"2・3歳児とその保護者",stuff:"上靴・水筒・タオル・帽子・着替え",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"}
+  ],
+  "2-8":[
+    {t:"なかよしひろば「新聞紙を使って遊ぼう」",c:"ev-yochien",cat:"志賀幼稚園",date:"9月8日（火）",time:"10:00〜11:20",loc:"大津市立志賀幼稚園",target:"0〜2歳児とその保護者",stuff:"上靴・水筒・タオル・帽子・着替え",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"}
+  ],
+  "2-10":[
+    {t:"育ち合い広場\"ぷちゆめそだち\"（3回目）",c:"ev-green",cat:"子育て・健康",date:"9月10日（木）",time:"10:00〜11:00",loc:"大津市子育てひろばゆめっこ",target:"6〜8か月の子どもとその保護者",note:"8/27開始の全4回連続講座（3回目）",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "2-13":[
+    {t:"献血バス",c:"ev-amber",cat:"地域・まちづくり",date:"9月13日（日）",time:"10:00〜11:30 / 13:00〜16:00",loc:"ブランチ大津京 A駐車場付近",url:"https://www.branch-sc.com/otsukyo/shop/pop-eventnews.jsp?id=7573"}
+  ],
+  "2-14":[
+    {t:"わくわくひろば「幼稚園公開」",c:"ev-yochien",cat:"志賀幼稚園",date:"9月14日（月）",loc:"大津市立志賀幼稚園",note:"幼稚園の施設見学・説明会を行います。電話でもお申し込みいただけます",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"}
+  ],
+  "2-15":[
+    {t:"なかよしひろば「体を動かして遊ぼう」",c:"ev-yochien",cat:"志賀幼稚園",date:"9月15日（火）",time:"10:00〜11:20",loc:"大津市立志賀幼稚園",target:"0〜2歳児とその保護者",stuff:"上靴・水筒・タオル・帽子・着替え",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"}
+  ],
+  "2-16":[
+    {t:"育ち合い講座「ことばの発達を育むために」",c:"ev-green",cat:"子育て・健康",date:"9月16日（水）",time:"10:00〜11:30",loc:"和邇コミュニティセンター 第4・5会議室",target:"就学前の子どもをもつ保護者",cap:"20名程度（託児保育3名）",stuff:"（保護者）筆記用具／（子ども）お茶かお水・オムツ・着替え",note:"講師：比良岡美智代氏（らく相談室まなえだ 言語聴覚士）。託児保育あり（ゆめっこで実施）。申込7/23〜随時受付",url:"https://www.city.otsu.lg.jp/kosodate/ss/y/e/9580.html"}
+  ],
+  "2-19":[
+    {t:"土曜日の市場マルシェ",c:"ev-amber",cat:"地域・まちづくり",date:"9月19日（土）",time:"10:00〜15:00",loc:"近江おごとハーブガーデン",url:"https://otsu-event.site/"}
+  ],
+  "2-23":[
+    {t:"西教寺 納涼「風鈴参道通り抜け」最終日（6/20〜）",c:"ev-blue",cat:"文化・観光",date:"6月20日〜9月23日",loc:"西教寺（大津市坂本5丁目13-1）",url:"https://otsu.or.jp/event"}
+  ],
+  "2-28":[
+    {t:"わくわくひろば「幼稚園でお弁当を食べよう」",c:"ev-yochien",cat:"志賀幼稚園",date:"9月28日（月）",time:"11:30〜13:00（通常と時間が異なります）",loc:"大津市立志賀幼稚園",target:"2・3歳児とその保護者",stuff:"お子様と保護者の弁当（別々の弁当箱）・ランチョンマット・お箸やフォーク・水筒",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"}
+  ],
+  "2-29":[
+    {t:"なかよしひろばミニ",c:"ev-yochien",cat:"志賀幼稚園",date:"9月29日（火）",time:"10:00〜11:20",loc:"大津市立志賀幼稚園",target:"0歳〜1歳誕生日まで",stuff:"飲み物（ジュース不可）・タオル・着替え・オムツ",note:"次回は10月27日（火）",url:"https://www.city.otsu.lg.jp/soshiki/070/yochien/2707/1387345067119.html"}
+  ],
+  "2-30":[
+    {t:"成瀬スタンプラリー 最終日（6/27〜）",c:"ev-amber",cat:"地域・まちづくり",date:"6月27日〜9月30日",loc:"浜大津・大津駅・近江神宮ほか市内各所",url:"https://otsu-event.site/events/01KQAXMYJV5Z0MDPYK6SF4YTCP"}
+  ]
+};
+
+
+function isHol(mi,d){return(MONTHS[mi].holidays||[]).includes(d)}
+
+// その日だけのイベントか判定（dateに「〜」「まで」「〜」が含まれない＝単日）
+function isSingleDay(e){
+  return !e.date.includes("〜") && !e.date.includes("まで") && !e.date.includes("～");
+}
+
+// 表示順ソート：単日イベントを先に、複数日イベントを後に
+function sortEvs(evs){
+  const single=evs.filter(e=>isSingleDay(e));
+  const multi=evs.filter(e=>!isSingleDay(e));
+  return [...single,...multi];
+}
+
+function buildCal(mi){
+  const m=MONTHS[mi];
+  const el=document.getElementById("cal-m"+mi);
+  let h=`<div class="month-label">${m.name}</div><div class="cal-grid">`;
+  DOW.forEach((d,i)=>{
+    const cls=i===0?"sun":i===6?"sat":"";
+    h+=`<div class="dh ${cls}">${d}</div>`;
+  });
+  for(let i=0;i<m.start;i++) h+=`<div class="dc empty"></div>`;
+  for(let d=1;d<=m.days;d++){
+    const dow=(m.start+d-1)%7;
+    const isToday=(mi===TODAY_MI&&d===TODAY_D);
+    const hol=isHol(mi,d);
+    const nc=hol||dow===0?"hol":dow===6?"sat":"";
+    const evs=sortEvs(EVENTS[`${mi}-${d}`]||[]);
+    let pills="";
+    evs.slice(0,3).forEach((e,ei)=>{
+      // ソート後のインデックスを元のEVENTSでのインデックスに変換
+      const origEi=(EVENTS[`${mi}-${d}`]||[]).indexOf(e);
+      pills+=`<button class="pill ${e.c}" onclick="openModal(${mi},${d},${origEi})">${e.t}</button>`;
+    });
+    if(evs.length>3){
+      pills+=`<button class="cal-more" onclick="jumpToList(${mi},${d})">+${evs.length-3}件 ›</button>`;
+    }
+    h+=`<div class="dc${isToday?" today":""}"><div class="dn ${nc}${isToday?" today-num":""}">${d}</div>${pills}</div>`;
+  }
+  const total=m.start+m.days;
+  const rem=(7-total%7)%7;
+  for(let i=0;i<rem;i++) h+=`<div class="dc empty"></div>`;
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+function buildList(mi){
+  const m=MONTHS[mi];
+  const el=document.getElementById("list-m"+mi);
+  let html="";
+  for(let d=1;d<=m.days;d++){
+    const evs=EVENTS[`${mi}-${d}`];
+    if(!evs||evs.length===0) continue;
+    const dow=(m.start+d-1)%7;
+    const hol=isHol(mi,d);
+    const dowCls=hol||dow===0?"hol":dow===6?"sat":"";
+    // アンカーIDをday-groupに付与
+    html+=`<div class="day-group" id="list-day-${mi}-${d}">
+      <div class="day-header">
+        <span>${MONTH_NUMS[mi]}月${d}日</span>
+        <span class="dow-badge ${dowCls}">${DOW[dow]}</span>
+      </div>`;
+    evs.forEach((e,ei)=>{
+      const sub=[e.time,e.loc].filter(Boolean).join("　");
+      html+=`<div class="ev-row" onclick="openModal(${mi},${d},${ei})">
+        <div class="ev-dot ${DOT[e.c]||'dot-blue'}"></div>
+        <div class="ev-info">
+          <div class="ev-name">${e.t}</div>
+          <div class="ev-sub">${sub}</div>
+        </div>
+        <div class="ev-cat ${e.c}">${e.cat}</div>
+        <div class="ev-arrow">›</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  el.innerHTML=html;
+}
+
+function showView(view){
+  document.querySelectorAll(".view-tab").forEach(el=>{
+    el.classList.toggle("active", el.textContent.includes(view==="cal"?"カレンダー":"リスト"));
+  });
+  document.getElementById("view-cal").classList.toggle("active", view==="cal");
+  document.getElementById("view-list").classList.toggle("active", view==="list");
+  // リスト表示に切り替えた時、今日以降の最初のイベントにスクロール
+  if(view==="list"){
+    setTimeout(()=>{
+      // 今月のリストで今日以降の最初の日を探す
+      const mi=getCurrentMonthIdx();
+      if(mi<0||mi>2) return;
+      // 今日以降の最初のイベントIDを探す
+      let targetId=null;
+      for(let d=TODAY_D;d<=MONTHS[mi].days;d++){
+        const el=document.getElementById(`list-day-${mi}-${d}`);
+        if(el){targetId=`list-day-${mi}-${d}`;break;}
+      }
+      if(targetId){
+        const target=document.getElementById(targetId);
+        if(target) target.scrollIntoView({behavior:"smooth",block:"start"});
+      }
+    },80);
+  }
+}
+
+function getCurrentMonthIdx(){
+  // 現在表示中の月インデックスを返す
+  let idx=0;
+  document.querySelectorAll(".month-tab").forEach((el,i)=>{if(el.classList.contains("active")) idx=i;});
+  return idx;
+}
+
+function showMonth(idx){
+  ["cal","list"].forEach(v=>{
+    document.querySelectorAll(`#view-${v} .mblock`).forEach((el,i)=>el.classList.toggle("visible",i===idx));
+  });
+  document.querySelectorAll(".month-tab").forEach((el,i)=>el.classList.toggle("active",i===idx));
+}
+
+// +N件クリック：リストビューに切り替えてその日にスクロール
+function jumpToList(mi,d){
+  // 月タブを合わせる
+  showMonth(mi);
+  // リストビューに切り替え
+  showView("list");
+  // スクロール（少し遅延させてDOM更新を待つ）
+  setTimeout(()=>{
+    const target=document.getElementById(`list-day-${mi}-${d}`);
+    if(target) target.scrollIntoView({behavior:"smooth",block:"start"});
+    // ハイライト
+    target.style.background="#fffbe6";
+    target.style.borderRadius="10px";
+    setTimeout(()=>{target.style.background="";target.style.borderRadius="";},1500);
+  },80);
+}
+
+function openModal(mi,d,ei){
+  const e=EVENTS[`${mi}-${d}`][ei];
+  let rows="";
+  const add=(label,val)=>{if(val) rows+=`<div class="modal-row"><span class="modal-label">${label}</span><span class="modal-val">${val}</span></div>`};
+  add("日時", e.date+(e.time?" "+e.time:""));
+  add("場所", e.loc);
+  if(e.target) add("対象", e.target);
+  if(e.cap)    add("定員", e.cap);
+  if(e.stuff)  add("持ち物", e.stuff);
+  if(e.note)   rows+=`<hr class="modal-divider"><div class="modal-note">${e.note}</div>`;
+
+  let footer="";
+  if(e.url){
+    footer=`<hr class="modal-divider"><a class="modal-link" href="${e.url}" target="_blank">詳細・申込ページへ ↗</a>`;
+    if(e.src2) footer+=`<div style="font-size:11px;color:var(--color-text-secondary);margin-top:6px;font-style:italic">${e.src2}</div>`;
+  } else if(e.src){
+    footer=`<hr class="modal-divider"><div class="modal-src">情報提供：${e.src}</div>`;
+  }
+
+  document.getElementById("modal-body").innerHTML=
+    `<div class="modal-tag ${e.c}">${e.cat}</div><div class="modal-title">${e.t}</div>${rows}${footer}`;
+  document.getElementById("overlay").classList.add("open");
+  document.body.style.overflow="hidden";
+}
+
+function closeModal(ev){
+  if(!ev||ev.target===document.getElementById("overlay")||ev.currentTarget.classList.contains("modal-close")){
+    document.getElementById("overlay").classList.remove("open");
+    document.body.style.overflow="";
+  }
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape") closeModal()});
+
+MONTHS.forEach((_,i)=>{buildCal(i);buildList(i);});
+
+// 開いた時に今月を自動表示（範囲外なら最初の月）
+const initMI=(TODAY_MI>=0&&TODAY_MI<=2)?TODAY_MI:0;
+if(initMI!==0) showMonth(initMI);
+
+// 初期表示がリストの場合も今日スクロール対応（カレンダーがデフォルトなので通常は不要だが念のため）
+document.querySelectorAll(".view-tab").forEach(el=>{
+  if(el.classList.contains("active")&&el.textContent.includes("リスト")){
+    setTimeout(()=>showView("list"),100);
+  }
+});
+</script>
+</body>
+</html>
